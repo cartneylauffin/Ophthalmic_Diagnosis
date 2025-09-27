@@ -3,7 +3,7 @@ pipeline {
 
     environment {
         DOCKERHUB_CREDENTIALS = credentials('test')  
-        IMAGE_NAME = "cartneylauffin/Opthal"
+        IMAGE_NAME = "cartneylauffin/opthal"
     }
 
     stages {
@@ -39,8 +39,8 @@ pipeline {
                 sh "docker pull $IMAGE_NAME:$BUILD_NUMBER"
 
                 // Stop and remove old container
-                sh "docker stop Opthal-container || true"
-                sh "docker rm Opthal-container || true"
+                sh "docker stop opthal-container || true"
+                sh "docker rm opthal-container || true"
 
                 // Run new container (Streamlit runs on port 8501)
                 sh "docker run -d --name opthal-container -p 8501:8501 $IMAGE_NAME:$BUILD_NUMBER"
