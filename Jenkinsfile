@@ -2,11 +2,12 @@ pipeline {
     agent any
 
     stages {
-        stage('Clone Repository') {
-            steps {
-                git 'https://github.com/cartneylauffin/Ophthalmic_Diagnosis.git'
-            }
-        }
+        sstage('Clone Repository') {
+    steps {
+        git branch: 'main', url: 'https://github.com/cartneylauffin/Ophthalmic_Diagnosis.git'
+    }
+}
+
 
         stage('Build Docker Image') {
             steps {
