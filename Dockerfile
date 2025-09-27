@@ -1,24 +1,26 @@
-# ---------- STEP 1: Use official Python base image ----------
+# Use official Python image
 FROM python:3.10-slim
 
-# ---------- STEP 2: Set working directory inside container ----------
+# Set working directory
 WORKDIR /app
 
-# ---------- STEP 3: Copy requirements first (for layer caching) ----------
-COPY requirements.txt ./
-
-# ---------- STEP 4: Install dependencies ----------
-RUN apt-get update && apt-get install -y --no-install-recommends build-essential \
-    && pip install --no-cache-dir -r requirements.txt \
-    && apt-get remove -y build-essential \
-    && apt-get autoremove -y \
+# Install system dependencies (optional, if you need them for packages)
+RUN apt-get update && apt-get install -y \
+    build-essential \
     && rm -rf /var/lib/apt/lists/*
 
-# ---------- STEP 5: Copy the rest of your code ----------
-COPY . .
+# Copy requirements first (better caching)
+COPY requirements.txt /app/
 
-# ---------- STEP 6: Expose Streamlit default port ----------
+# Install Python dependencies
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Copy all project files
+COPY . /app
+
+# Expose the Streamlit port
 EXPOSE 8501
 
-# ---------- STEP 7: Command to run the Streamlit app ----------
-CMD ["streamlit", "run", "app.py", "--server.port", "8501", "--server.address", "0.0.0.0"]
+# Run Streamlit
+CMD ["streamlit", "run", "app.py", "--server.port=8501", "--server.address=0.0.0.0"]
+
