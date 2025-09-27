@@ -1,45 +1,57 @@
 pipeline {
-    agent any
+    agent any 
 
     environment {
-        IMAGE_NAME = "ophthalmic_diagnosis"
-        IMAGE_TAG  = "latest"
+        DOCKERHUB_CREDENTIALS = credentials('test')  
+        IMAGE_NAME = "cartneylauffin/Opthal"
     }
 
     stages {
-        stage('Checkout Code') {
-            steps {
-                git branch: 'main', url: 'https://github.com/cartneylauffin/Ophthalmic_Diagnosis.git'
-            }
-        }
-
         stage('Build Docker Image') {
-            steps {
-                sh "docker build -t ${IMAGE_NAME}:${IMAGE_TAG} ."
+            steps {  
+                echo "Building Docker image..."
+                sh "docker build -t $IMAGE_NAME:$BUILD_NUMBER ."
             }
         }
 
-        stage('Stop Old Container') {
+        stage('Login to DockerHub') {
             steps {
-                script {
-                    sh """
-                    docker ps -q --filter "name=${IMAGE_NAME}" | grep -q . && docker stop ${IMAGE_NAME} || true
-                    docker ps -a -q --filter "name=${IMAGE_NAME}" | grep -q . && docker rm ${IMAGE_NAME} || true
-                    """
+                withCredentials([usernamePassword(credentialsId: 'test', usernameVariable: 'DOCKERHUB_USERNAME', passwordVariable: 'DOCKERHUB_PASSWORD')]) {
+                    echo "Logging in to Docker Hub..."
+                    sh "echo $DOCKERHUB_PASSWORD | docker login -u $DOCKERHUB_USERNAME --password-stdin"
                 }
             }
         }
 
-        stage('Run New Container') {
+        stage('Push Image to DockerHub') {
             steps {
-                sh "docker run -d --name ${IMAGE_NAME} -p 8501:8501 ${IMAGE_NAME}:${IMAGE_TAG}"
+                echo "Pushing Docker image to Docker Hub..."
+                sh "docker push $IMAGE_NAME:$BUILD_NUMBER"
+                sh "docker tag $IMAGE_NAME:$BUILD_NUMBER $IMAGE_NAME:latest"
+                sh "docker push $IMAGE_NAME:latest"
+            }
+        }
+
+        stage('Deploy to Staging') {
+            steps {
+                echo "Deploying container..."
+                // Pull the latest image
+                sh "docker pull $IMAGE_NAME:$BUILD_NUMBER"
+
+                // Stop and remove old container
+                sh "docker stop Opthal-container || true"
+                sh "docker rm Opthal-container || true"
+
+                // Run new container (Streamlit runs on port 8501)
+                sh "docker run -d --name opthal-container -p 8501:8501 $IMAGE_NAME:$BUILD_NUMBER"
             }
         }
     }
 
     post {
         always {
-            echo '✅ Deployment finished.'
+            echo "Logging out from Docker Hub..."
+            sh 'docker logout'
         }
     }
 }
